@@ -1,8 +1,7 @@
 <template>
   <div class="container">
     <alert
-      v-for="(alert, index) in alerts" :key="index"
-      v-if="alert.showAlert"
+      v-for="(alert, index) in activeAlerts" :key="index"
       v-bind:variant="alert.alertVariant"
       v-bind:message="alert.alertMessage">
     </alert>
@@ -18,11 +17,18 @@ export default {
   components: {
     alert: Alert
   },
+  computed: {
+    activeAlerts: function() {
+      return this.alerts.filter(function(alert) {
+        return alert.showAlert
+      })
+    }
+  },
   data () {
     return {
       alerts: [
         {
-          showAlert: true,
+          showAlert: false,
           alertVariant: 'danger',
           alertMessage: 0
         },
@@ -32,7 +38,7 @@ export default {
           alertMessage: 1
         },
         {
-          showAlert: true,
+          showAlert: false,
           alertVariant: 'dark',
           alertMessage: 2
         }

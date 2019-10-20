@@ -1,10 +1,5 @@
 <template>
   <div class="container">
-    <alert 
-      v-if="sharedState.is_new"
-      v-bind:variant="alertVariant"
-      v-bind:message="alertMessage">
-    </alert>
     <h1>Sign In</h1>
     <div class="row">
       <div class="col-md-4">
@@ -33,19 +28,13 @@
 </template>
 
 <script>
-import axios from 'axios'
-import Alert from './Alert'
 import store from '../store.js'
+
 export default {
   name: 'Login',
-  components: {
-    alert: Alert
-  },
   data () {
     return {
       sharedState: store.state,
-      alertVariant: 'info',
-      alertMessage: 'Congratulations, you are now a registered user !',
       loginForm: {
         username: '',
         password: '',
@@ -76,9 +65,9 @@ export default {
         // program will not be executed further if form verification is not successful, API calling will be passed to axios
         return false
       }
-      const path = 'http://localhost:5000/api/tokens'
+      const path = '/tokens'
       // auth property should be configured in config to realize Basic Auth
-      axios.post(path, {}, {
+      this.$axios.post(path, {}, {
         auth: {
           'username': this.loginForm.username,
           'password': this.loginForm.password
@@ -86,8 +75,9 @@ export default {
       }).then((response) => {
           // handle success
           window.localStorage.setItem('blog-token', response.data.token)
-          store.resetNotNewAction()
           store.loginAction()
+          const name = JSON.parse(atob(response.data.token.split('.')[1])).name
+          this.$toasted.success(`Welcome ${name}`, { icon: 'fingerprint' })
           if (typeof this.$route.query.redirect == 'undefined') {
             this.$router.push('/')
           } else {

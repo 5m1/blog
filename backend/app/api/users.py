@@ -1,5 +1,5 @@
 import re
-from flask import request, jsonify, url_for
+from flask import request, jsonify, url_for, g
 from app import db
 from app.api import bp
 from app.api.auth import token_auth
@@ -51,6 +51,9 @@ def get_users():
 @token_auth.login_required
 def get_user(id):
     '''return a single user'''
+    user = User.query.get_or_404(id)
+    if g.current_user == user:
+        return jsonify(User.query.get_or_404(id).to_dict(include_email=True))
     return jsonify(User.query.get_or_404(id).to_dict())
 
 @bp.route('/users/<int:id>', methods=['PUT'])
@@ -63,12 +66,10 @@ def update_user(id):
         return bad_request('You must post a JSON data')
     
     message = {}
-    # different
-    if 'username' not in data or not data.get('username', None):
+    if 'username' in data and not data.get('username', None):
         message['username'] = 'Please provide a valid username.'
     pattern = '^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$'
-    # different
-    if 'email' not in data and not re.match(pattern, data.get('email', None)):
+    if 'email' in data and not re.match(pattern, data.get('email', None)):
         message['email'] = 'Please provide a valid email address.'
     
     if 'username' in data and data['username'] != user.username and User.query.filter_by(username=data['username']).first():
