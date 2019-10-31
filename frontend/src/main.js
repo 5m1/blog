@@ -4,9 +4,14 @@ import Vue from 'vue'
 import moment from 'moment'
 import App from './App'
 import router from './router'
-import 'bootstrap/dist/css/bootstrap.css'
 import VueToasted from 'vue-toasted'
 import axios from './http'
+
+import 'bootstrap'
+import 'bootstrap/dist/css/bootstrap.min.css'
+import './assets/bootstrap-markdown/css/bootstrap-markdown.min.css'
+import './assets/bootstrap-markdown/css/custom.css'
+import './assets/icon-awesome/css/font-awesome.min.css'
 
 Vue.config.productionTip = false
 

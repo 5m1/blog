@@ -1,8 +1,7 @@
 from flask import jsonify
 from werkzeug.http import HTTP_STATUS_CODES
-
-from app import db
-from app.api import bp
+from app.api import bp 
+from app.extensions import db
 
 
 def error_response(status_code, message=None):
@@ -24,6 +23,6 @@ def not_found_error(error):
     return error_response(404)
 
 @bp.app_errorhandler(500)
-def internal_server_error(error):
+def internal_error(error):
     db.session.rollback()
     return error_response(500)

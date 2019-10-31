@@ -5,7 +5,7 @@ from hashlib import md5
 from datetime import datetime, timedelta
 from flask import url_for, current_app
 from werkzeug.security import generate_password_hash, check_password_hash
-from app import db
+from app.extensions import db
 
 
 class PaginatedAPIMixin(object):
@@ -28,8 +28,9 @@ class PaginatedAPIMixin(object):
         }
         return data
 
-
 class User(PaginatedAPIMixin, db.Model):
+    __tablename__ = 'users'
+
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), index=True, unique=True)
     email = db.Column(db.String(120), index=True, unique=True)
@@ -39,6 +40,7 @@ class User(PaginatedAPIMixin, db.Model):
     member_since = db.Column(db.DateTime(), default=datetime.utcnow)
     last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
     password_hash = db.Column(db.String(128))
+    posts = db.relationship('Post', backref='author', lazy='dynamic', cascade='all, delete-orphan')
 
     def __repr__(self):
         return '<User {}>'.format(self.username)
@@ -97,8 +99,52 @@ class User(PaginatedAPIMixin, db.Model):
     def verify_jwt(token):
         try:
             payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
-        except jwt.exceptions.ExpireSignatureError as e:
+        except (jwt.exceptions.ExpireSignatureError, jwt.exceptions.InvalidSignatureError) as e:
             return None
         return User.query.get(payload.get('user_id'))
+
+class Post(PaginatedAPIMixin, db.Model):
+    __tablename__ = 'posts'
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(255))
+    summary = db.Column(db.Text)
+    body = db.Column(db.Text)
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow())
+    views = db.Column(db.Integer, default=0)
+    author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+
+    def __repr__(self):
+        return '<Post {}>'.format(self.title)
+
+    @staticmethod
+    def on_changed_body(target, value, oldvalue, initiator):
+        '''
+        target: 有监听事件发生的 Post 实例对象
+        value: 监听哪个字段的变化
+        '''
+        if not target.summary:  # 如果前端不填写摘要，是空str，而不是None
+            target.summary = value[:200] + '  ... ...'  # 截取 body 字段的前200个字符给 summary
+
+    def from_dict(self, data):
+        for field in ['title', 'summary', 'body']:
+            if field in data:
+                setattr(self, field, data[field])
+
+    def to_dict(self):
+        data = {
+            'id': self.id,
+            'title': self.title,
+            'summary': self.summary,
+            'body': self.body,
+            'timestamp': self.timestamp,
+            'views': self.views,
+            'author': self.author.to_dict(),
+            '_links': {
+                'self': url_for('api.get_post', id=self.id),
+                'author_url': url_for('api.get_user', id=self.author_id)
+            }
+        }
+        return data
 
 
